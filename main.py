@@ -7,7 +7,7 @@ from flask import Flask, render_template, request
 from flask_socketio import SocketIO, emit
 from sqlitedict import SqliteDict
 
-app = Flask(__name__, template_folder='templates', static_url_path='/static/', static_folder='static')
+app = Flask(__name__, template_folder='templates', static_url_path='/chat/static/', static_folder='static')
 SqliteDict('main.db', tablename="main", autocommit=True)
 
 app.config['SECRET_KEY'] = 'eero'
