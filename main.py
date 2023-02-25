@@ -65,37 +65,37 @@ def conn(msg):
 @socketio.on("login", namespace="/")
 def login(username):
 	users_table = get_room_users_table()
-	print("login", request.remote_addr, username)
-	users_table[request.remote_addr] = {
+	print("login", request.sid, username)
+	users_table[request.sid] = {
 		"username": username,
 		"last_seen": datetime.datetime.now().isoformat(),
 		"status": "online",
-		"ip": request.remote_addr,
+		"ip": request.sid,
 	}
 	emit("users", {"users": list(users_table.values())}, broadcast=True)
 
 @socketio.on("disconnect", namespace="/")
 def disconnect():
 	users_table = get_room_users_table()
-	print("disconnect", request.remote_addr)
-	if request.remote_addr in users_table:
-		user = users_table[request.remote_addr]
+	print("disconnect", request.sid)
+	if request.sid in users_table:
+		user = users_table[request.sid]
 		user["status"] = "offline"
 		user["last_seen"] = datetime.datetime.now().isoformat()
-		users_table[request.remote_addr] = user
+		users_table[request.sid] = user
 	emit("users", {"users": list(users_table.values())}, broadcast=True)
 
 @socketio.on("typing", namespace="/")
 def typing(_typing_status):
-	print("typing", request.remote_addr, _typing_status)
+	print("typing", request.sid, _typing_status)
 	users_table = get_room_users_table()
-	if request.remote_addr in users_table:
-		user = users_table[request.remote_addr]
+	if request.sid in users_table:
+		user = users_table[request.sid]
 		if _typing_status:
 			user["status"] = "typing"
 		else:
 			user["status"] = "online"
-		users_table[request.remote_addr] = user
+		users_table[request.sid] = user
 	emit("users", {"users": list(users_table.values())}, broadcast=True)
 
 @socketio.on('client_message')
