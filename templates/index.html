@@ -5,35 +5,56 @@
 <title>Papo Reto</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="author" content="C. Magno Nascimento">
-<script src="//cdnjs.cloudflare.com/ajax/libs/socket.io/2.2.0/socket.io.js" integrity="sha256-yr4fRk/GU1ehYJPAs8P4JlTgu0Hdsp4ZKrx8bDEDC3I=" crossorigin="anonymous"></script>
+<script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
 <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='./css/style.css') }}">
 <link rel="icon" type="image/png" href="{{ url_for('static', filename='./images/icon.png') }}">
 </head>
 <body>
-	<a href="https://magnodev.netlify.com/"><img class="imghome" src="{{ url_for('static', filename='./images/home.png') }}"/></a>
+
 <script type="text/javascript" charset="utf-8">
 const socket = io();
 
 socket.on('connect', () => {
-	socket.emit('connected', {'nickname':document.getElementById('nickname-input').value}, (data) => {
+	socket.emit('connected', {
+		'nickname': document.getElementById('nickname-input').value}, (data) => {
+			console.log("connected: ", data);
+			if (data.messages) {
+				for (let i = 0; i < data.messages.length; i++) {
+					addMessage(data.messages[i]);
+				}
+			}
 	});
 });
 
-socket.on('server_message', (data) => {
+const randomizeColor = (string) => {
+	// Return a random color based on a string
+	let hash = 0;
+	for (let i = 0; i < string.length; i++) {
+		hash = string.charCodeAt(i) + ((hash << 5) - hash);
+	}
+	let color = '#';
+	for (let i = 0; i < 3; i++) {
+		let value = (hash >> (i * 8)) & 0xFF;
+		color += ('00' + value.toString(16)).substr(-2);
+	}
+	return color;
+}
+
+const addMessage = (data) => {
 	let e = document.createElement('p');
 	let sp = document.createElement('span');
 	sp.innerHTML = data.nickname;
+	sp.style.color = randomizeColor(data.nickname);
 	e.appendChild(sp);
-	e.innerHTML = e.innerHTML+'>> '+data.message;
-
-	if(document.getElementById('message-box').children.length>20){
-		document.getElementById('message-box').removeChild(document.getElementById('message-box').children[0]);
-	}
+	e.innerHTML = e.innerHTML+': '+data.message;
 
 	document.getElementById('message-box').appendChild(e);
 
-
 	document.getElementById('message-box').scroll(0, document.getElementById('message-box').scrollHeight);
+}
+
+socket.on('server_message', (data) => {
+	addMessage(data);
 });
 
 function htmlEntities(str) {
@@ -61,20 +82,20 @@ function isPressingEnter(e){
 }
 
 </script>
-<h1 id="title">Papo Reto</h1>
+<h1 id="title">Chat</h1>
 <section id="chat-box">
 	<section id="message-box">
 	</section>
 
 	<section id="input-box">
-		<input type="text" autofocus onkeypress="return isPressingEnter(event)" required placeholder="Digite sua mensagem aqui" id="message-input">
+		<input type="text" autofocus onkeypress="return isPressingEnter(event)" required placeholder="Kirjoita viesti" id="message-input">
 		<button type="button" id="send-button" onclick="sendMessage()" >>></button>
 	</section>
 </section>
 
 <section id="nickname-box">
-	<label id="nickname-label" for="nickname-input">Nickname: </label>
-	<input type="text" id="nickname-input" autocomplete="off" value="Guest">
+	<label id="nickname-label" for="nickname-input">Nimi: </label>
+	<input type="text" id="nickname-input" autocomplete="off" value="Vieras">
 </section>
 
 </body>
