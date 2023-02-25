@@ -81,8 +81,37 @@ function isPressingEnter(e){
 	}
 }
 
+const rooms = {
+	"valtteri": "Ukin huone",
+	"mutala": "Vaarin huone",
+}
+
+const queryParams = new URLSearchParams(window.location.search);
+const room = queryParams.get('room');
+const roomChoices = (queryParams.get('roomChoices') || '').split(',');
+
+
+
 </script>
-<h1 id="title">Chat</h1>
+<div id="room-choices"></div>
+<style>
+	#room-choices a {
+		display: block;
+	}
+</style>
+<h1 id="title"></h1>
+<script>
+	document.getElementById('title').innerHTML = rooms[room] || room;
+	for (const roomChoice of roomChoices) {
+		if (room === roomChoice) {
+			continue;
+		}
+		let e = document.createElement('a');
+		e.href = `/?room=${roomChoice}&roomChoices=${roomChoices.join(',')}`;
+		e.innerHTML = rooms[roomChoice] || roomChoice;
+		document.getElementById('room-choices').appendChild(e);
+	}
+</script>
 <section id="chat-box">
 	<section id="message-box">
 	</section>
