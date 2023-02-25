@@ -107,7 +107,7 @@ const roomChoices = (queryParams.get('roomChoices') || '').split(',');
 			continue;
 		}
 		let e = document.createElement('a');
-		e.href = `/?room=${roomChoice}&roomChoices=${roomChoices.join(',')}`;
+		e.href = `?room=${roomChoice}&roomChoices=${roomChoices.join(',')}`;
 		e.innerHTML = rooms[roomChoice] || roomChoice;
 		document.getElementById('room-choices').appendChild(e);
 	}
