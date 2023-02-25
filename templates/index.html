@@ -23,7 +23,39 @@ socket.on('connect', () => {
 					addMessage(data.messages[i]);
 				}
 			}
+			if (data.users) {
+				updateUserList(data.users);
+			}
 	});
+	socket.emit('login', document.getElementById('nickname-input').value);
+});
+
+const nicknameChanged = () => {
+	console.log("nickname changed");
+	socket.emit('login', document.getElementById('nickname-input').value);
+}
+
+const updateUserList = (users) => {
+	document.getElementById('user-count').innerHTML = users.length+' käyttäjää';
+	document.getElementById('used-list').innerHTML = '';
+	for (let i = 0; i < users.length; i++) {
+		let e = document.createElement('li');
+		const user = users[i];
+		if (user.status == "offline") {
+			continue;
+		}
+		e.innerHTML = user.username;
+		if (user.status == "typing")
+			e.innerHTML += ' kirjoittaa...';
+
+		e.style.color = randomizeColor(user.username);
+		document.getElementById('used-list').appendChild(e);
+	}
+}
+
+socket.on('users', (users) => {
+	console.log("users: ", users.users);
+	updateUserList(users.users);
 });
 
 const randomizeColor = (string) => {
@@ -64,6 +96,7 @@ function htmlEntities(str) {
 function sendMessage(){
 	socket.emit('client_message', {'nickname': htmlEntities(document.getElementById('nickname-input').value), 'message':  htmlEntities(document.getElementById('message-input').value)});
 	document.getElementById('message-input').value = '';
+	socket.emit('typing', false);
 }
 
 function isPressingEnter(e){
@@ -72,13 +105,22 @@ function isPressingEnter(e){
 		k = e.keyCode;
 		if(k===13){
 			sendMessage();
+			return;
 		}
 	}else if(e.which){
 		k = e.which;
 		if(k===13){
 			sendMessage();
+			return;
 		}
 	}
+	setTimeout(() => {
+		console.log(document.getElementById('message-input').value);
+		if (document.getElementById('message-input').value.length > 0)
+			socket.emit('typing', true);
+		else
+			socket.emit('typing', false);
+	}, 1)
 }
 
 const rooms = {
@@ -113,18 +155,26 @@ const roomChoices = (queryParams.get('roomChoices') || '').split(',');
 	}
 </script>
 <section id="chat-box">
-	<section id="message-box">
+	<section id="users-and-messages-box">
+		<section id="user-box">
+			<p id="user-count"><span id="user-count">0</span> käyttäjää</p>
+			<ul id="used-list"></ul>
+		</section>
+
+		<section id="message-box">
+
+		</section>
 	</section>
 
 	<section id="input-box">
-		<input type="text" autofocus onkeypress="return isPressingEnter(event)" required placeholder="Kirjoita viesti" id="message-input">
+		<input type="text" autofocus onkeyup="return isPressingEnter(event)" required placeholder="Kirjoita viesti" id="message-input">
 		<button type="button" id="send-button" onclick="sendMessage()" >>></button>
 	</section>
 </section>
 
 <section id="nickname-box">
 	<label id="nickname-label" for="nickname-input">Nimi: </label>
-	<input type="text" id="nickname-input" autocomplete="off" value="Vieras">
+	<input type="text" id="nickname-input" autocomplete="off" value="Vieras" onchange="nicknameChanged()">
 </section>
 
 </body>

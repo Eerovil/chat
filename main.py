@@ -17,8 +17,7 @@ socketio = SocketIO(app)
 def index():
 	return render_template('./index.html')
 
-def get_room_table():
-	print(request.referrer)
+def get_room():
 	# parse room query param from referrer
 	try:
 		room_query_param = request.referrer.split('?')[1].split('=')[1]
@@ -31,7 +30,15 @@ def get_room_table():
 		room_query_param = "public"
 	# parse room_query_param to make sure it's safe
 	room_query_param = re.sub(r'[^a-zA-Z0-9_]', '', room_query_param)
+	return room_query_param
+
+def get_room_table():
+	room_query_param = get_room()
 	return SqliteDict('main.db', tablename=room_query_param, autocommit=True)
+
+def get_room_users_table():
+	room_query_param = get_room()
+	return SqliteDict('main.db', tablename=room_query_param + "_users", autocommit=True)
 
 def get_messages_key():
 	# Current day as string
@@ -53,7 +60,43 @@ def get_message_history():
 
 @socketio.on('connected')
 def conn(msg):
-	return {'data':'Ok', 'messages': get_message_history()}
+	return {'data':'Ok', 'messages': get_message_history(), 'users': list(get_room_users_table().values())}
+
+@socketio.on("login", namespace="/")
+def login(username):
+	users_table = get_room_users_table()
+	print("login", request.remote_addr, username)
+	users_table[request.remote_addr] = {
+		"username": username,
+		"last_seen": datetime.datetime.now().isoformat(),
+		"status": "online",
+		"ip": request.remote_addr,
+	}
+	emit("users", {"users": list(users_table.values())}, broadcast=True)
+
+@socketio.on("disconnect", namespace="/")
+def disconnect():
+	users_table = get_room_users_table()
+	print("disconnect", request.remote_addr)
+	if request.remote_addr in users_table:
+		user = users_table[request.remote_addr]
+		user["status"] = "offline"
+		user["last_seen"] = datetime.datetime.now().isoformat()
+		users_table[request.remote_addr] = user
+	emit("users", {"users": list(users_table.values())}, broadcast=True)
+
+@socketio.on("typing", namespace="/")
+def typing(_typing_status):
+	print("typing", request.remote_addr, _typing_status)
+	users_table = get_room_users_table()
+	if request.remote_addr in users_table:
+		user = users_table[request.remote_addr]
+		if _typing_status:
+			user["status"] = "typing"
+		else:
+			user["status"] = "online"
+		users_table[request.remote_addr] = user
+	emit("users", {"users": list(users_table.values())}, broadcast=True)
 
 @socketio.on('client_message')
 def receive_message(data):

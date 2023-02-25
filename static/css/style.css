@@ -36,6 +36,17 @@ body{
 	#chat-box{
 		width: 80vw;
 	}
+	#users-and-messages-box {
+		display: flex;
+		flex-direction: row;
+	}
+	#message-box{
+		order: 1;
+	}
+	#user-box{
+		width: 10%;
+		order: 2;
+	}
 }
 
 
