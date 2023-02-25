@@ -22,7 +22,7 @@ def get_room_table():
 	# parse room query param from referrer
 	try:
 		room_query_param = request.referrer.split('?')[1].split('=')[1]
-		if '&' in room_query_param:
+		if room_query_param and '&' in room_query_param:
 			room_query_param = room_query_param.split('&')[0]
 	except:
 		room_query_param = None
