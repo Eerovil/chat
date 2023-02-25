@@ -86,17 +86,30 @@ def disconnect():
 	emit("users", {"users": list(users_table.values())}, broadcast=True)
 
 @socketio.on("typing", namespace="/")
-def typing(_typing_status):
+def typing(values):
+	_typing_status = values["typing"]
+	_nickname = values["nickname"]
 	print("typing", request.sid, _typing_status)
 	users_table = get_room_users_table()
-	if request.sid in users_table:
-		user = users_table[request.sid]
-		if _typing_status:
-			user["status"] = "typing"
-		else:
-			user["status"] = "online"
+	if request.sid not in users_table:
+		users_table[request.sid] = {
+			"username": _nickname,
+			"last_seen": datetime.datetime.now().isoformat(),
+			"status": "online",
+			"ip": request.sid,
+		}
+
+	user = users_table[request.sid]
+	new_status = "online"
+	if _typing_status:
+		new_status = "typing"
+	user["last_seen"] = datetime.datetime.now().isoformat()
+	if user["status"] != new_status:
+		user["status"] = new_status
 		users_table[request.sid] = user
-	emit("users", {"users": list(users_table.values())}, broadcast=True)
+		emit("users", {"users": list(users_table.values())}, broadcast=True)
+	else:
+		users_table[request.sid] = user
 
 @socketio.on('client_message')
 def receive_message(data):

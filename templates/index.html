@@ -36,12 +36,15 @@ const nicknameChanged = () => {
 }
 
 const updateUserList = (users) => {
-	document.getElementById('user-count').innerHTML = (users || []).filter(u => u.status != "offline").length + ' käyttäjää';
 	document.getElementById('used-list').innerHTML = '';
 	for (let i = 0; i < users.length; i++) {
 		let e = document.createElement('li');
 		const user = users[i];
 		if (user.status == "offline") {
+			continue;
+		}
+		const last_seen = new Date(user.last_seen);
+		if (last_seen.getTime() < Date.now() - 1000 * 60 * 5) {
 			continue;
 		}
 		e.innerHTML = user.username;
@@ -96,31 +99,41 @@ function htmlEntities(str) {
 function sendMessage(){
 	socket.emit('client_message', {'nickname': htmlEntities(document.getElementById('nickname-input').value), 'message':  htmlEntities(document.getElementById('message-input').value)});
 	document.getElementById('message-input').value = '';
-	socket.emit('typing', false);
+	socket.emit('typing', {typing: false, nickname: document.getElementById('nickname-input').value});
+}
+
+function debounce(func, timeout = 300){
+  let timer;
+  return (...args) => {
+    clearTimeout(timer);
+    timer = setTimeout(() => { func.apply(this, args); }, timeout);
+  };
 }
 
 function isPressingEnter(e){
-	let k;
-	if(window.event){
-		k = e.keyCode;
-		if(k===13){
-			sendMessage();
-			return;
+	debounce(() => {
+		let k;
+		if(window.event){
+			k = e.keyCode;
+			if(k===13){
+				sendMessage();
+				return;
+			}
+		}else if(e.which){
+			k = e.which;
+			if(k===13){
+				sendMessage();
+				return;
+			}
 		}
-	}else if(e.which){
-		k = e.which;
-		if(k===13){
-			sendMessage();
-			return;
-		}
-	}
-	setTimeout(() => {
-		console.log(document.getElementById('message-input').value);
-		if (document.getElementById('message-input').value.length > 0)
-			socket.emit('typing', true);
-		else
-			socket.emit('typing', false);
-	}, 1)
+		setTimeout(() => {
+			console.log(document.getElementById('message-input').value);
+			if (document.getElementById('message-input').value.length > 0)
+				socket.emit('typing', {typing: true, nickname: document.getElementById('nickname-input').value});
+			else
+				socket.emit('typing', {typing: false, nickname: document.getElementById('nickname-input').value});
+		}, 1)
+	})();
 }
 
 const rooms = {
@@ -157,7 +170,6 @@ const roomChoices = (queryParams.get('roomChoices') || '').split(',');
 <section id="chat-box">
 	<section id="users-and-messages-box">
 		<section id="user-box">
-			<p id="user-count"><span id="user-count">0</span> käyttäjää</p>
 			<ul id="used-list"></ul>
 		</section>
 
