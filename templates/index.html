@@ -102,38 +102,28 @@ function sendMessage(){
 	socket.emit('typing', {typing: false, nickname: document.getElementById('nickname-input').value});
 }
 
-function debounce(func, timeout = 300){
-  let timer;
-  return (...args) => {
-    clearTimeout(timer);
-    timer = setTimeout(() => { func.apply(this, args); }, timeout);
-  };
-}
-
 function isPressingEnter(e){
-	debounce(() => {
-		let k;
-		if(window.event){
-			k = e.keyCode;
-			if(k===13){
-				sendMessage();
-				return;
-			}
-		}else if(e.which){
-			k = e.which;
-			if(k===13){
-				sendMessage();
-				return;
-			}
+	let k;
+	if(window.event){
+		k = e.keyCode;
+		if(k===13){
+			sendMessage();
+			return;
 		}
-		setTimeout(() => {
-			console.log(document.getElementById('message-input').value);
-			if (document.getElementById('message-input').value.length > 0)
-				socket.emit('typing', {typing: true, nickname: document.getElementById('nickname-input').value});
-			else
-				socket.emit('typing', {typing: false, nickname: document.getElementById('nickname-input').value});
-		}, 1)
-	})();
+	}else if(e.which){
+		k = e.which;
+		if(k===13){
+			sendMessage();
+			return;
+		}
+	}
+	setTimeout(() => {
+		console.log(document.getElementById('message-input').value);
+		if (document.getElementById('message-input').value.length > 0)
+			socket.emit('typing', {typing: true, nickname: document.getElementById('nickname-input').value});
+		else
+			socket.emit('typing', {typing: false, nickname: document.getElementById('nickname-input').value});
+	}, 1)
 }
 
 const rooms = {
