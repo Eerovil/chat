@@ -124,5 +124,29 @@ def receive_message(data):
 	# Send the message to all clients
 	emit('server_message', data, broadcast=True)
 
+@socketio.on('get_bot_response')
+def get_bot_response():
+	main_table = get_room_table()
+	day = get_messages_key()
+	room_query_param = get_room()
+	if room_query_param == "aibot":
+		# Get bot response
+		from aibot import ai_complete
+		# 10 last messages
+		messages = get_message_history()[-10:]
+		ai_response = ai_complete(messages)
+		if ai_response is None:
+			return
+		data = {
+			"nickname": "Botti",
+			"message": ai_response,
+		}
+		data['date'] = datetime.datetime.now().isoformat()
+		day_messages = main_table[day]
+		day_messages.append(data)
+		main_table[day] = day_messages
+		emit('server_message', data, broadcast=True)
+
+
 if __name__ == '__main__':
 	socketio.run(app, debug=True, host="0.0.0.0", port=5005)
