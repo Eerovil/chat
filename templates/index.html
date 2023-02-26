@@ -15,8 +15,14 @@
 const socket = io();
 
 socket.on('connect', () => {
+	// Try to parse nickname from url
+	const queryParams = new URLSearchParams(window.location.search);
+	const nickname = queryParams.get('nickname');
+	if (nickname) {
+		document.getElementById('nickname-input').value = nickname;
+	}
 	socket.emit('connected', {
-		'nickname': document.getElementById('nickname-input').value}, (data) => {
+		'nickname': getNickname()}, (data) => {
 			console.log("connected: ", data);
 			if (data.messages) {
 				for (let i = 0; i < data.messages.length; i++) {
@@ -27,12 +33,16 @@ socket.on('connect', () => {
 				updateUserList(data.users);
 			}
 	});
-	socket.emit('login', document.getElementById('nickname-input').value);
+	socket.emit('login', getNickname());
 });
+
+const getNickname = () => {
+	return document.getElementById('nickname-input').value;
+}
 
 const nicknameChanged = () => {
 	console.log("nickname changed");
-	socket.emit('login', document.getElementById('nickname-input').value);
+	socket.emit('login', getNickname());
 }
 
 const updateUserList = (users) => {
@@ -97,9 +107,9 @@ function htmlEntities(str) {
 }
 
 function sendMessage(){
-	socket.emit('client_message', {'nickname': htmlEntities(document.getElementById('nickname-input').value), 'message':  htmlEntities(document.getElementById('message-input').value)});
+	socket.emit('client_message', {'nickname': htmlEntities(getNickname()), 'message':  htmlEntities(document.getElementById('message-input').value)});
 	document.getElementById('message-input').value = '';
-	socket.emit('typing', {typing: false, nickname: document.getElementById('nickname-input').value});
+	socket.emit('typing', {typing: false, nickname: getNickname()});
 }
 
 function isPressingEnter(e){
@@ -120,9 +130,9 @@ function isPressingEnter(e){
 	setTimeout(() => {
 		console.log(document.getElementById('message-input').value);
 		if (document.getElementById('message-input').value.length > 0)
-			socket.emit('typing', {typing: true, nickname: document.getElementById('nickname-input').value});
+			socket.emit('typing', {typing: true, nickname: getNickname()});
 		else
-			socket.emit('typing', {typing: false, nickname: document.getElementById('nickname-input').value});
+			socket.emit('typing', {typing: false, nickname: getNickname()});
 	}, 1)
 }
 
@@ -152,7 +162,10 @@ const roomChoices = (queryParams.get('roomChoices') || '').split(',');
 			continue;
 		}
 		let e = document.createElement('a');
-		e.href = `?room=${roomChoice}&roomChoices=${roomChoices.join(',')}`;
+		e.onclick = () => {
+			window.location.href = `?room=${roomChoice}&roomChoices=${roomChoices.join(',')}&nickname=${getNickname()}`;
+		}
+		e.href = "#"
 		e.innerHTML = rooms[roomChoice] || roomChoice;
 		document.getElementById('room-choices').appendChild(e);
 	}
