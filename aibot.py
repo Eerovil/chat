@@ -1,18 +1,12 @@
 import openai
 from datetime import datetime
 
-
-COMPLETIONS_MODEL = "text-davinci-003"
-EMBEDDING_MODEL = "text-embedding-ada-002"
-
 initial_prompt = (
-    "Olet 5-vuotiaan lapsen apulainen. Vastaa kysymyksiin mahdollisimman helpoilla "
-    "(mutta silti oikeilla) vastauksilla. Käytä lyhyitä sanoja. "
-    "Olet Chatbot, ja chatin muoto on seuraava:\n"
-    "Botti: Hei\n"
-    "Käyttäjä: Hei\n"
-    "\n"
-    "Anna aina vastauksena ainoastaan yksi viesti, ei useampaa."
+    "Olet 5-vuotiaan lapsen apulainen. Vastaa viimeisinpään viestiin mahdollisimman helpoilla "
+    "(mutta silti oikeilla) vastauksilla. Käytä lyhyitä, helppolukuisia sanoja ja vastaa yhdellä lauseella. Yritä kysyä käyttäjältä "
+    "jotakin hänen viestiinsä liittyvää. Muista puhua kuten lapselle. "
+    "Olet nimeltäsi \"Botti\". "
+    "Anna vastaus muodossa \"Botti: <vastaus>\". "
 )
 
 def ai_complete(messages):
@@ -21,25 +15,54 @@ def ai_complete(messages):
         context_prompt = f"Nyt on {datetime.now().isoformat()}\n\n"
 
         chat_prompt = ""
+        prev_bot_message = None
 
         for message in messages:
-            chat_prompt += f"{message['nickname']}: {message['message']}\n"
+            nickname = message["nickname"]
+            chat_prompt += f"{nickname}: {message['message']}\n"
+            if nickname == "Botti":
+                prev_bot_message = message["message"]
 
         full_prompt = initial_prompt + context_prompt + chat_prompt
 
-        print(full_prompt)
+        print(f"prompt: {full_prompt}")
 
-        completion = openai.Completion.create(
+        resp = openai.Completion.create(
             prompt=full_prompt,
-            temperature=0,
+            temperature=0.2,
             max_tokens=100,
-            model=COMPLETIONS_MODEL
-        )["choices"][0]["text"].strip(" \n")
+            model="text-davinci-003",
+            top_p=1,
+            frequency_penalty=0.3,
+            presence_penalty=0.0
+        )
+
+        completion = resp["choices"][0]["text"].strip(" \n")
 
         print(f"bot answer: {completion}")
 
+        completion = (completion or '').strip()
+
+        if ':' in completion:
+            completion = completion.split(':')[-1].strip()
+
         if completion and completion.lower().startswith("botti: "):
-            completion = completion[7:]
+            completion = completion[7:].strip()
+
+        if completion.lower().startswith("msg:"):
+            completion = completion[4:].strip()
+
+        if completion and completion.lower().startswith("botti: "):
+            completion = completion[7:].strip()
+
+        if completion and completion.lower().startswith("botti"):
+            completion = completion[5:].strip()
+
+        if not completion or (prev_bot_message and completion.strip() == prev_bot_message.strip()):
+            print("Bot answered with the same message")
+            if len(messages) <= 1:
+                return None
+            return ai_complete([messages[-1]])
 
         return completion
 
