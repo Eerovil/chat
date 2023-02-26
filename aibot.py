@@ -46,6 +46,8 @@ def ai_complete(messages):
         if ':' in completion:
             completion = completion.split(':')[-1].strip()
 
+        completion = completion.replace("Mitä haluat tehdä seuraavaksi?", "")
+
         if completion and completion.lower().startswith("botti: "):
             completion = completion[7:].strip()
 
